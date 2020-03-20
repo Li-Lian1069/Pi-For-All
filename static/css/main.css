@@ -1,0 +1,98 @@
+p{
+    margin: 0;
+}
+
+ul li {
+    list-style: none;
+}
+
+ul {
+    margin: 0;
+    padding: 0;
+}
+
+.icon {
+  width: 1em;
+  height: 1em;
+  vertical-align: -0.15em;
+  fill: currentColor;
+  overflow: hidden;
+}
+/* @font-face {
+  font-family: 'iconfont';
+  src: url('../icons/iconfont/iconfont.eot');
+  src: url('../icons/iconfont/iconfont.eot?#iefix') format('embedded-opentype'),
+      url('../icons/iconfont/iconfont.woff2') format('woff2'),
+      url('../icons/iconfont/iconfont.woff') format('woff'),
+      url('../icons/iconfont/iconfont.ttf') format('truetype'),
+      url('../icons/iconfont/iconfont.svg#iconfont') format('svg');
+}
+
+
+.iconfont {
+  font-family: "iconfont" !important;
+  font-size: 16px;
+  font-style: normal;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+} */
+/* init */
+
+.pd-32 {
+    padding: 32px!important;
+}
+
+.ht-32 {
+    height: 32px!important;
+}
+
+.wt-32 {
+    width:32px!important;
+}
+
+.in-bk {
+    display: inline-block!important;
+}
+.bk {
+    display: block!important;
+}
+
+.ve-al-mid {
+    vertical-align: middle!important;
+}
+
+.mdui-middle{
+    vertical-align: middle;
+}
+
+.ft-sz-2{
+    font-size: 24px!important;
+}
+.ft-sz-3{
+    font-size: 32px!important;
+}
+.ft-sz-4{
+    font-size: 40px!important;
+}
+.ft-sz-3{
+    font-size: 48px!important;
+}
+.no-warp {
+    white-space :nowrap!important;
+}
+
+.radius-1 {
+    border-radius: 5px;
+}
+.radius-2 {
+    border-radius: 5px;
+}
+.radius-cycle {
+    border-radius: 50%;
+}
+@media screen and (max-width: 599px) {
+    #home-network-usage {
+        height: 100px!important;
+        
+    }
+}
