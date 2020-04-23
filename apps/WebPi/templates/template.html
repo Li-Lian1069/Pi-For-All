@@ -52,8 +52,22 @@
         <div id="toolbar-vol-dialog" class="mdui-dialog"><!-- VOL DIALOG -->
             <div class="mdui-dialog-title">Set Volume</div>
             <div class="mdui-dialog-content mdui-p-t-2">
+                <script>
+                    $(document).ready (
+                        function () {
+                            $.get (
+                                '/WebPi/api/volume',
+                                function (data,statu) {
+                                    if (statu == 'success') {
+                                        $('#volume-input').attr (value,data.value)
+                                    }
+                                }
+                            )
+                        }
+                    )
+                </script>
                 <label class="mdui-slider mdui-slider-discrete " style="width: 90%;margin: 16px auto;">
-                  <input type="range" step="1" min="0" max="100"/>
+                  <input id="volume-input" type="range" step="1" min="0" max="100" onchange=""/>
                 </label>
             </div>
             <div class="mdui-dialog-actions">
@@ -75,7 +89,7 @@
 
                     <select class="mdui-select" mdui-select>
                         {% for i in iface %}
-                            <option value="{{i.name ()}}" onchange="ifaceOnChange (this);">
+                            <option value="{{i}}" onchange="ifaceOnChange (this);">
                                 {{ i }}
                             </option>
                         {% endfor %}

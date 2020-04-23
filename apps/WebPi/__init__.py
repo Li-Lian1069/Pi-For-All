@@ -17,6 +17,7 @@ app = SDK.webApp
 logger.info ('WebPi now start.')
 
 try:
+    # 导入wifi模块
     from . import wifi
     wifi.logger = SDK.create_loger ('wifi')
     wifi.settingDir = SDK.get_cfg_dir ()
@@ -24,6 +25,13 @@ try:
 except Exception as e:
     logger.error ('wifi module has some error.',exc_info=e)
     wifi = False
+# =========================
+try:
+    # 导入volume模块
+    from . import volume
+except OSError as e:
+    logger.error ('volume module will disable in your os.',exc_info=e)
+    volume = False
 # =========================
 
 def template (**agrs):
@@ -55,7 +63,7 @@ def settings ():
 def about ():
     return template (content = render_template ('about.html'))
 
-@app.route ('/api/wifi',methods=["GET","POST"])
+@app.route ('/api/wifi',methods=["POST"])
 def api_wifi ():
     """
     WIFI接口:
@@ -189,7 +197,7 @@ def api_wifi ():
         logger.error ('wifi operater has a error.',exc_info=e)
         return json.dumps (result)
 
-@app.route ('/api/check/state/',methods=['POST'])
+@app.route ('/api/state/',methods=['POST'])
 def api_check_state ():
 
     d = {
@@ -294,6 +302,37 @@ def api_check_state ():
             d['net'][k].append (i[1])
 
     return json.dumps (d)
+
+@app.route ('/api/volume/',methods=["GET","POST"])
+def api_volume ():
+    """
+    # 音量接口 , get 取 post 置.
+
+    传入:
+        {
+            value : ''
+        }
+    """
+
+    class STATU:
+        OK = 1
+        ERROR = 0
+    result = {
+        'statu' : STATU.ERROR
+    }
+    if not volume:
+        return json.dumps (result)
+    if request.method == "GET":
+        # 取音量
+        result ['value'] = volume.getV ()
+        result ['statu'] = STATU.OK
+        return json.dumps (result)
+    if request.method == "POST":
+        # 设置后返回
+        result ['statu'] = STATU.OK
+        volume.setV (request.form.get ('value',str))
+        result ['value'] = volume.getV ()
+        return json.dumps (result)
 
 def get_net_speed ():
     '''

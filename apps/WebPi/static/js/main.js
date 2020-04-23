@@ -5,3 +5,10 @@ function ifaceOnChange (Element) {
     //
     // }
 }
+
+function volumeOnChange (vaule) {
+    $.post (
+        '/WebPi/api/volume',
+        {vaule:vaule}
+    )
+}
