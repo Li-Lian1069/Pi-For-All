@@ -1,0 +1,109 @@
+ * {
+    padding: 0;
+    margin: 0;
+}
+
+ul {
+    margin: 0;
+    padding: 0;
+
+}
+
+ul li {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+a{
+    text-decoration: none;
+}
+
+/* i {
+    text-decoration: none;
+    font-style: none;
+}
+ */
+@font-face {
+  font-family: 'iconfont';
+  src: url('../fonts/iconfonts/iconfont.eot');
+  src: url('../fonts/iconfonts/iconfont.eot?#iefix') format('embedded-opentype'),
+      url('../fonts/iconfonts/iconfont.woff2') format('woff2'),
+      url('../fonts/iconfonts/iconfont.woff') format('woff'),
+      url('../fonts/iconfonts/iconfont.ttf') format('truetype'),
+      url('../fonts/iconfonts/iconfont.svg#iconfont') format('svg');
+}
+
+.iconfont {
+  font-family: "iconfont" !important;
+  font-size: 24px;
+  font-style: normal;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* 初始化 */
+
+@media screen and (max-width: 600px) {
+    #toolbar-more {display: inline-block!important;}
+
+    #toolbar-wifi {display: none;}
+    #toolbar-bt {display: none;}
+    #toolbar-vol {display: none;}
+    #left-drawer-nav {display: flex!important;}
+}
+#toolbar-more {display: none;}
+/* 自适应 */
+
+.ds-inbk {
+    display: inline-block;
+}
+
+.icon-32px {
+    /* width: 32px!important; */
+    height: 32px!important;
+    font-size: 32px!important;
+}
+
+.toolbar-pwr-dialog-icons {
+    font-size: 48px;
+    margin: 8px auto;
+    padding: 8px;
+    border-radius: 50%;
+}
+
+
+
+
+/* public */
+
+#home-quick-entrance {
+    max-width: 600px;
+    max-height: 282px; /* 两行 */
+    overflow-x: hidden;
+    overflow-y: auto;
+    background-color: white;
+}
+
+.home-quick-entrance-appicon {
+    border-radius: 50%;
+    font-size: 48px;
+}
+
+#home-msg-del {
+    margin-top: 4px;
+    border-radius: 50%;
+    float: right;
+    padding: 8px;
+
+}
+
+/* Home Page */
+
+.state-monitor-icon {
+    font-size: 48px!important;
+    width: 48px!important;
+    height: 48px!important;
+}
+
+/* state Page */

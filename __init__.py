@@ -9,41 +9,48 @@ Pi For All 程序入口
 |     |  类名 : c_小写_小写
 
 需要的库:
-    flask
-    
-    toml - 储存配置
+    flask            - web框架
+    psutil           - 获取系统资源状态
+    toml             - 储存配置
+    pywifi           - wifi操作
+    comtypes         - pywifi 依赖
 '''
 DEBUG = False
 
-import os,sys,flask,toml
+# =======================
+from flask import Flask , redirect , url_for
+import os,sys,toml
 from appApi import APPSDK
-APP = APPSDK ('main')
-os.chdir(APP.getFileDir(__file__)) # 工作目录更改目录至脚本所在路径
-_SEP = os.sep
- 
-loger = APP.create_loger ()
+os.chdir (os.path.split(os.path.realpath(__file__))[0]) # 工作目录更改目录至脚本所在路径
+
+SDK = APPSDK ('main',__name__)
+
+loger = SDK.create_loger ()
 loger.info ('The program is now running.')
-cfg = APP.get_cfg_file ('config.toml')
+config = SDK.get_cfg_file ('config.toml')
 # 主程序注册
 
 # =======载入插件=======
-import webService # Web 服务必须最高优先级
-@webService.app.route ('/pulgMg/check_app_statu/name=<name>')
-def check_app_statu (name):
-    try:
-        return 'Hi'
-    except Exception as e :
-        loger.error (f'pulgMg check app status fiald : {repr (e)}')
 
-# ↑ web 服务器
-loger.info ('The webService is already imported.')
+app = Flask (__name__,'')
 
+@app.route ('/')
+def index ():
+    return redirect ( url_for ('WebPi.index') )
 
 import plugManger
-plugManger.load_apps ()
+plugManger.load_apps (app)
 # ↑ 加载完毕
 
+if __name__ == "__main__":
+    # 直接启动脚本时有效
+    SERVER_HOST = config.get ('SERVER_HOST',default='localhost')
+    SERVER_PORT = config.get ('SERVER_PORT',default='2020')
+    DEBUG = config.get ('DEBUG',default=True)
+    # 以上参数在反向代理中无效
 
-webService.run (host=cfg.get('host',default='localhost'),
-port=cfg.get('port',default='80'),
-debug=True)
+    app.run (
+        SERVER_HOST,
+        SERVER_PORT,
+        DEBUG
+    )

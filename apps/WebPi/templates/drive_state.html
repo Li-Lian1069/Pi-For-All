@@ -1,0 +1,424 @@
+<!-- state Page -->
+
+<script>
+    setInterval(page_state_listen, 1000);
+    function page_state_listen() {
+        $.post("{{url_for ('WebPi.api_check_state')}}", function (json, statu) {
+            if (statu == 'success') {
+                data = $.parseJSON(json);
+
+                // 流程
+                // 1. 获取模板
+                // 2. 解释数据
+                // 3. 确定元素是否存在
+                //     存在 : 直接修改内容
+                //     不存在 : 创建元素并修改内容
+                // 4. 跳至 2
+                // 5. 跳至 1
+
+                function formater(value) {
+                    value = parseInt(value)
+                    if (value > 1099511627776) {
+                        // TB
+                        return (value / 1099511627776).toFixed(2) + ' TB';
+                    } else if (value > 1073741824) {
+                        // GB
+                        return (value / 1073741824).toFixed(2) + ' GB';
+                    } else if (value > 1048576) {
+                        // MB
+                        return (value / 1048576).toFixed(2) + ' MB';
+                    } else if (value > 1024) {
+                        // KB
+                        return (value / 1024).toFixed(2) + ' KB';
+                    } else {
+                        // B
+                        return value + ' B';
+                    }
+                }
+
+
+                // CPU
+                data.cpu.total = parseInt(data.cpu.total);
+                $('#state-cpu-total-used').text(data.cpu.total + '%');
+                $('#state-cpu-total-progress').css('width', data.cpu.total + "%");
+                var template_SubCpu = $('#state-cpu-sub-template');
+                for (var i = 0; i < data.cpu.per.length; i++) {
+
+                    if (document.getElementById('state-cpu-sub-' + i)) {
+                        // 已经存在元素,直接修改
+
+                        $('#state-cpu-sub-' + i).find('.state-cpu-sub-progress')
+                            .width(data.cpu.per[i] + '%');
+                        $('#state-cpu-sub-' + i).find('.state-cpu-sub-usge')
+                            .text(data.cpu.per[i] + ' %');
+                        continue; // 下一个元素
+                    }
+
+                    // 到这里说明元素不存在
+
+                    var template = template_SubCpu.clone();
+                    $('#state-cpu-sublist').append(template);
+                    template.attr('id', 'state-cpu-sub-' + i);
+                    template.find('.state-cpu-sub-name').text('CPU : ' + i);
+                    template.find('.state-cpu-sub-progress').css('width', data.cpu.per[i] + '%');
+                    template.find('.state-cpu-sub-usge').text(data.cpu.per[i] + ' %');
+
+                    template.removeClass('mdui-hidden');
+
+                }
+
+                // RAM
+                $('#state-ram-usage-percent').text(data.ram.percent + ' %');
+                $('#state-ram-progress').width(data.ram.percent + '%');
+                $('#state-ram-total').text(formater(data.ram.total));
+                $('#state-ram-available').text(formater(data.ram.available));
+                $('#state-ram-used').text(formater(data.ram.used));
+                $('#state-ram-free').text(formater(data.ram.free));
+
+
+                // DISK
+                $('#state-disk-root-total-used').text(data.disk.percent + '%');
+                $('#state-disk-root-total-progress').width(data.disk.percent + '%');
+                delete data.disk.percent;
+                var template_SubDisk = $('#state-disk-template');
+                var diskName;
+                for (diskName in data.disk) {
+                    // 遍历 DiskName
+                    function fmtDiskName(str) { return str.replace(/\:|\\|\//g, '') }
+
+
+                    if (document.getElementById('state-disk-' + fmtDiskName(diskName))) {
+                        // 如果项目已经存在,只更新信息
+                        reFreshDiskInfo($('#state-disk-' + fmtDiskName(diskName)), diskName);
+                        continue;
+                    }
+
+                    // 到这里说明Disk还没有被记录
+                    var template = template_SubDisk.clone();
+                    $('#state-disk-list').append(template);
+                    template.attr('id', 'state-disk-' + fmtDiskName(diskName));
+                    reFreshDiskInfo(template, diskName);
+                    template.removeClass('mdui-hidden');
+
+                }
+                function reFreshDiskInfo(target, diskName) {
+                    target.find('.state-disk-name').text(diskName);
+                    var diskParam;
+                    for (diskParam in data.disk[diskName]) {
+                        if (diskParam == 'percent') {
+                            target.find('.state-disk-percent').text(data.disk[diskName][diskParam] + ' %');
+                            target.find('.state-disk-progress').width(data.disk[diskName][diskParam] + '%');
+                            continue;
+                            // 如果是percent属性 ,  直接修改进度条
+                        }
+
+                        if (typeof (data.disk[diskName][diskParam]) == 'number') {
+                            data.disk[diskName][diskParam] = formater(data.disk[diskName][diskParam]);
+                        }
+
+                        target.find('.state-disk-' + diskParam).text(data.disk[diskName][diskParam]);
+                    }
+
+                }
+
+                // net
+                // #     net {
+                // #         total : xxx,
+                // #         upload : xxx,
+                // #         download : xxx,
+                // #         if0 : [
+                // #             ip1 : 'xxx',
+                // #             ip2 : 'xxx'
+                // #         ]
+                // #         if1 : [...]
+                // #     }
+
+                $('#state-net-down').text(formater(data.net.download) + ' /s');
+                $('#state-net-up').text(formater(data.net.upload) + ' /s');
+                $('#state-net-speed').text(formater(data.net.total) + ' /s');
+                delete data.net.download;
+                delete data.net.upload;
+                delete data.net.total;
+
+                var template_SubIf = $('#state-net-if-template');
+                var template_SubIf_SubIp = $('#state-net-if-ip-template');
+                for (ifName in data.net) {
+                    // 遍历每一个 if
+
+                    if (document.getElementById('state-net-if-' + fmtDiskName(ifName))) {
+                        // 到这里说明已经存在
+                        continue; // 跳过
+                    }
+
+                    var temp_if = template_SubIf.clone();
+                    temp_if.attr('id', 'state-net-if-' + fmtDiskName(ifName));
+                    temp_if.find('.state-net-if-name').text(fmtDiskName(ifName));
+                    $('#state-net-if-list').append(temp_if);
+                    for (var i = 0; i < data.net[ifName].length; i++) {
+                        // 遍历 每个if 中的每个 ip
+                        var temp_if_ip = template_SubIf_SubIp.clone();
+                        temp_if_ip.find('.state-net-if-ip').text(data.net[ifName][i]);
+                        temp_if_ip.removeClass('mdui-hidden');
+                        temp_if.find('.state-net-if-ip-list').append(temp_if_ip);
+
+                    }
+                    temp_if.removeClass('mdui-hidden');
+                }
+
+
+                mdui.mutation();
+            }
+        })
+
+    }
+</script>
+
+<ul id="state-monitor-bar" class="mdui-list" mdui-collapse="{accordion: true}">
+    <li class="mdui-collapse-item">
+        <!-- CPU Usage -->
+        <div class="mdui-collapse-item-header mdui-list-item mdui-ripple">
+            <!-- CPU Usage -->
+            <i class="mdui-list-item-icon mdui-icon iconfont state-monitor-icon">&#xe641;</i>
+            <div class="mdui-list-item-content">
+                <div class="mdui-list-item-title mdui-list-item-one-line mdui-m-a-1">
+                    <!-- 标题 -->
+                    <span class="mdui-text-color-theme-400"> CPU Usage: </span>
+                    <div id="state-cpu-total-used" class="mdui-float-right mdui-text-color-theme"></div>
+                </div>
+                <div class="mdui-list-item-one-line mdui-m-a-1">
+                    <!-- 进度条 -->
+                    <div class="mdui-progress" style="height: 100%;">
+                        <div id="state-cpu-total-progress" class="mdui-progress-determinate" style="width: 0%"></div>
+                    </div>
+
+                </div>
+            </div>
+            <i class="mdui-collapse-item-arrow mdui-icon material-icons">keyboard_arrow_down</i>
+        </div>
+        <ul id="state-cpu-sublist" class="mdui-collapse-item-body mdui-list">
+            <!-- collapse -->
+            <li id="state-cpu-sub-template" class="mdui-hidden state-cpu-sub mdui-list-item mdui-ripple">
+                <i class="mdui-list-item-icon mdui-icon iconfont">&#xe641;</i>
+                <div class="mdui-list-item-content">
+                    <div>
+                        <span class="state-cpu-sub-name mdui-text-color-theme-icon">CPU0 : </span>
+                        <span class="state-cpu-sub-usge mdui-float-right mdui-text-color-theme-icon">100%</span>
+                    </div>
+                    <div class="mdui-progress">
+                        <div class="state-cpu-sub-progress state-cpu-sub-progress mdui-progress-determinate"
+                            style="width: 0%;"></div>
+                    </div>
+                </div>
+                <i class="mdui-list-item-icon"></i>
+            </li>
+
+        </ul>
+    </li>
+
+    <li class="mdui-collapse-item">
+        <!-- RAM Usage -->
+        <div class="mdui-collapse-item-header mdui-list-item mdui-ripple">
+            <!-- RAM Usage -->
+            <i class="mdui-list-item-icon mdui-icon iconfont state-monitor-icon">&#xe634;</i>
+            <div class="mdui-list-item-content">
+                <div class="mdui-list-item-title mdui-list-item-one-line mdui-m-a-1">
+
+                    <span class="mdui-text-color-theme-400"> RAM Usage: </span>
+                    <div id="state-ram-usage-percent" class="mdui-float-right mdui-text-color-theme"></div>
+                </div>
+
+                <div class="mdui-list-item-one-line mdui-m-a-1">
+                    <!-- 进度条 -->
+                    <div class="mdui-progress" style="height: 100%;">
+                        <div id="state-ram-progress" class="mdui-progress-determinate" style="width: 0%"></div>
+                    </div>
+
+                </div>
+            </div>
+            <i class="mdui-collapse-item-arrow mdui-icon material-icons">keyboard_arrow_down</i>
+        </div>
+        <ul class="mdui-collapse-item-body mdui-list">
+            <!-- collapse -->
+            <li class="mdui-list-item mdui-ripple">
+
+                <div class="mdui-list-item-content">
+                    <span class="mdui-text-color-theme-icon">Total : </span>
+                    <span id="state-ram-total" class="mdui-text-color-theme-icon"></span>
+                </div>
+                <i class="mdui-list-item-icon">
+                    <!-- 占位 --></i>
+            </li>
+            <li class="mdui-list-item mdui-ripple">
+
+                <div class="mdui-list-item-content">
+                    <span class="mdui-text-color-theme-icon">available : </span>
+                    <span id="state-ram-available" class="mdui-text-color-theme-icon"></span>
+                </div>
+                <i class="mdui-list-item-icon">
+                    <!-- 占位 --></i>
+            </li>
+            <li class="mdui-list-item mdui-ripple">
+
+                <div class="mdui-list-item-content">
+                    <span class="mdui-text-color-theme-icon">used : </span>
+                    <span id="state-ram-used" class="mdui-text-color-theme-icon"></span>
+                </div>
+                <i class="mdui-list-item-icon">
+                    <!-- 占位 --></i>
+            </li>
+            <li class="mdui-list-item mdui-ripple">
+
+                <div class="mdui-list-item-content">
+                    <span class="mdui-text-color-theme-icon">free : </span>
+                    <span id="state-ram-free" class="mdui-text-color-theme-icon"></span>
+                </div>
+                <i class="mdui-list-item-icon">
+                    <!-- 占位 --></i>
+            </li>
+
+        </ul>
+    </li>
+
+    <li class="mdui-collapse-item">
+        <!-- data usage -->
+
+        <div class="mdui-collapse-item-header mdui-list-item mdui-ripple">
+            <i class="mdui-list-item-icon mdui-icon material-icons state-monitor-icon">data_usage</i>
+            <div class="mdui-list-item-content">
+                <div class="mdui-list-item-title mdui-list-item-one-line mdui-m-a-1">
+                    <span class="mdui-text-color-theme-400"> Disk Usage: </span>
+                    <div id="state-disk-root-total-used" class="mdui-float-right mdui-text-color-theme"></div>
+                </div>
+
+                <div class="mdui-list-item-one-line mdui-m-a-1">
+                    <!-- 进度条 -->
+                    <div class="mdui-progress" style="height: 100%;">
+                        <div id="state-disk-root-total-progress" class="mdui-progress-determinate" style="width: 0%"></div>
+                    </div>
+                </div>
+            </div>
+            <i class="mdui-collapse-item-arrow mdui-icon material-icons">keyboard_arrow_down</i>
+        </div>
+        <ul id="state-disk-list" class="mdui-collapse-item-body mdui-list" mdui-collapse="{accordion: true}">
+            <!-- collapse -->
+            <li id="state-disk-template" class="mdui-hidden mdui-collapse-item">
+                <div class="mdui-collapse-item-header mdui-list-item mdui-ripple">
+                    <!-- pre disk used -->
+                    <i class="mdui-list-item-icon mdui-icon iconfont">&#xe88b;</i>
+                    <div class="mdui-list-item-content">
+                        <div class="mdui-list-item-title mdui-clearfix">
+                            <div class="state-disk-name mdui-text-color-theme-icon mdui-float-left"></div>
+                            <div class="state-disk-percent mdui-text-color-theme-icon mdui-float-right"></div>
+                        </div><!-- 磁盘名 -->
+                        <div class="mdui-progress">
+                            <div class="state-disk-progress mdui-progress-determinate" style="width: 0%"></div>
+                        </div><!-- 进度条 -->
+                    </div>
+                    <i class="mdui-collapse-item-arrow mdui-icon material-icons">keyboard_arrow_down</i>
+                </div><!-- per disk used -->
+
+                <ul class="mdui-collapse-item-body mdui-list mdui-list-dense ">
+                    <!-- per disk informations -->
+                    <li class="mdui-list-item mdui-ripple">
+                        <i class="mdui-list-item-icon">
+                            <!-- 占位 --></i>
+                        <div class="mdui-list-item-content">
+                            <span class="mdui-text-color-theme-text">mountpoint : </span>
+                            <span class="state-disk-mountpoint mdui-text-color-theme-text"></span>
+                        </div>
+                    </li>
+                    <li class="mdui-list-item mdui-ripple">
+                        <i class="mdui-list-item-icon">
+                            <!-- 占位 --></i>
+                        <div class="mdui-list-item-content">
+                            <span class="mdui-text-color-theme-text">total : </span>
+                            <span class="state-disk-total mdui-text-color-theme-text"></span>
+                        </div>
+                    </li>
+                    <li class="mdui-list-item mdui-ripple">
+                        <i class="mdui-list-item-icon">
+                            <!-- 占位 --></i>
+                        <div class="mdui-list-item-content">
+                            <span class="mdui-text-color-theme-text">used : </span>
+                            <span class="state-disk-used mdui-text-color-theme-text"></span>
+                        </div>
+                    </li>
+                    <li class="mdui-list-item mdui-ripple">
+                        <i class="mdui-list-item-icon">
+                            <!-- 占位 --></i>
+                        <div class="mdui-list-item-content">
+                            <span class="mdui-text-color-theme-text">free : </span>
+                            <span class="state-disk-free mdui-text-color-theme-text"></span>
+                        </div>
+                    </li>
+                    <li class="mdui-list-item mdui-ripple">
+                        <i class="mdui-list-item-icon">
+                            <!-- 占位 --></i>
+                        <div class="mdui-list-item-content">
+                            <span class="mdui-text-color-theme-text">fstype : </span>
+                            <span class="state-disk-fstype mdui-text-color-theme-text"></span>
+                        </div>
+                        <i class="mdui-list-item-icon">
+                            <!-- 占位 --></i>
+                    </li>
+                    <li class="mdui-list-item mdui-ripple">
+                        <i class="mdui-list-item-icon">
+                            <!-- 占位 --></i>
+                        <div class="mdui-list-item-content">
+                            <span class="mdui-text-color-theme-text">opts : </span>
+                            <span class="state-disk-opts mdui-text-color-theme-text"></span>
+                        </div>
+                        <i class="mdui-list-item-icon">
+                            <!-- 占位 --></i>
+                    </li>
+                </ul> <!-- per disk informations -->
+            </li>
+
+        </ul>
+    </li> <!-- Disk Usage -->
+
+    <li class="mdui-collapse-item" mdui-collapse="{accordion: true}">
+        <!-- network -->
+        <div class="mdui-collapse-item-header mdui-list-item mdui-ripple">
+            <i class="mdui-list-item-icon mdui-icon iconfont state-monitor-icon">&#xe601;</i>
+            <div class="mdui-list-item-content">
+                <div class="mdui-list-item-title mdui-list-item-one-line mdui-m-a-1">
+                    <span class="mdui-text-color-theme-400">Network Speed:</span>
+                    <div id="state-net-speed" class="mdui-float-right mdui-text-color-theme"></div>
+                </div>
+                <div class="mdui-list-item-one-line mdui-clearfix mdui-m-a-1">
+                    <span class="mdui-text-color-theme-700"> ↑ </span>
+                    <span class="mdui-text-color-theme-text" id="state-net-up"></span>
+                    <span class="mdui-text-color-theme-700 mdui-m-l-2"> ↓ </span>
+                    <span class="mdui-text-color-theme-text" id="state-net-down"></span>
+                </div>
+            </div>
+            <i class="mdui-collapse-item-arrow mdui-icon material-icons">keyboard_arrow_down</i>
+        </div>
+
+        <ul id="state-net-if-list" class="mdui-collapse-item-body mdui-list" mdui-collapse="{accordion: true}">
+            <!-- per if -->
+            <li id="state-net-if-ip-template" class="mdui-hidden mdui-list-item  mdui-ripple">
+                <!-- 单个ip -->
+                <i class="mdui-list-item-icon mdui-icon">
+                    <!-- 占位 --></i>
+                <div class="state-net-if-ip mdui-text-color-theme-icon mdui-list-item-content"></div>
+                <i class="mdui-list-item-icon mdui-icon">
+                    <!-- 占位 --></i>
+            </li>
+            <li id="state-net-if-template" class="mdui-hidden mdui-collapse-item" mdui-collapse="{accordion: true}">
+                <div class="mdui-collapse-item-header mdui-list-item mdui-ripple">
+                    <!-- per iface -->
+                    <i class="mdui-list-item-icon mdui-icon iconfont">&#xe909;</i>
+                    <div class="state-net-if-name mdui-list-item-content mdui-text-color-theme-icon"></div>
+                    <i class="mdui-collapse-item-arrow mdui-icon material-icons">keyboard_arrow_down</i>
+                </div> <!-- per iface -->
+                <ul class="state-net-if-ip-list mdui-collapse-item-body mdui-list mdui-list-dense">
+
+                </ul>
+            </li>
+
+        </ul> <!-- per if -->
+
+    </li> <!-- network -->
+</ul>

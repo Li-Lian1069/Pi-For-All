@@ -1,25 +1,23 @@
-import toml,logging,time
-from os import path , makedirs , sep
+from typing import Optional,Union,Any
+from os import path , makedirs , getcwd
 from urllib import request as _request
-import urllib as _urllib
 from collections import UserDict as _UserDict
+from flask import Blueprint
 
-def openurl (url,data=None):
-        '''
-            执行网页get操作,并且返回结果
-        '''
-        return _request.urlopen (url,data).read ()
+import toml,logging,logging.handlers,time
+http_vist = _request.urlopen
 
-def mkdir (path,mode=0o766):
+
+def mkdir (dirPath,mode=0o766):
     '''
         检测文件夹是否存在,并递归创建
         成功返回 T 失败返回失败文本
     '''
     try:
-        if path.isdir (path):
+        if path.isdir (dirPath):
             return True
         else:
-            makedirs (path,mode)
+            makedirs (dirPath,mode)
     except Exception as e:
         return repr (e)
 
@@ -120,57 +118,66 @@ class LOG_leave ():
     CRITICAL=logging.CRITICAL
 
 class APPSDK ():
-    def __init__ (self,appName):
+    appName : str
+    webApp : Blueprint
 
-        import webService
+    def __init__ (self,appName:str,
+        module_name:__name__,
+        need_web_app:bool = True,
+        **flaskArgs
+    ):
+        """
+        初始化SDK实例:
+        .. params:
+            appName :
+                你的应用名称
+                You application's name .
+            module_name :
+                用于 Flask 的导入识别, 一般为 `__name__` .
+                Will be used in `Flask` , use `__name__` for normal.
+            need_web_app:bool = True, :
+                如果需要一个 flask 的 app 请设置为 True
+                if you need a flask app , please set it True.
+        """
 
         self.get_cfg_file.appName = appName
         self.create_loger.appName = appName
-        self.add_route = webService.add_route
-        self.url_encoder = _urllib.parse.urlencode
-        self.webObj = webService.app
-        self.web_route = webService.app.route
+        self.appName = appName
 
-        if not path.isdir (f'settings{sep}{appName}'):
-            mkdir (f'settings{sep}{appName}')
+        settingsPath = path.join ('settings',appName)
+        if not path.isdir ( settingsPath ):
+            mkdir (settingsPath)
 
-        if not path.isdir (f'log{sep}{appName}'):
-            mkdir (f'log{sep}{appName}')
-        
-
-    def getFileDir (self,file):
-        '''
-            取得目前脚本的所在目录
-        '''
-        return path.split(path.realpath(file))[0]
-
-    def getFilePath (self,file):
-        '''
-            取得目前脚本的所在目录
-        '''
-        return path.realpath(file)
+        logPath = path.join ('log',appName)
+        if not path.isdir (logPath):
+            mkdir (logPath)
+        if need_web_app :
+            self.webApp = Blueprint (appName , module_name , **flaskArgs )
+        else: self.webApp = False
 
     class get_cfg_file(_UserDict):
         '''
             获取一个文件,返回一个类似于dict的对象,之后可以用dict的方法使用此对象.
                 - file : 文件名,不存在则创建
-                - saveMode : 文件保存的时机,可以指定多种方式,若需指定多种方式,可以传入一个list或tuple
+                - save_when_change=True : 对象的字典被更改时是否自动保存
         '''
-        def __init__ (self,fileName,save_when_change=True):
+        def __init__ (self,fileName:str,
+            save_when_change:Optional[bool]=True
+        ):
             '''
             获取一个文件,返回一个类似于dict的对象,之后可以用dict的方法使用此对象.
                 - file : 文件名,不存在则创建
                 - save_when_change=True : 对象的字典被更改时是否自动保存
             '''
             super ().__init__ ()
-            
+
             self.__is_loading = True
-            self.__filePath = f'settings{sep}{self.appName}{sep}{fileName}'
-            self.__saveWhenCh = save_when_change
-            
-            if fileName [-5:] != '.toml':
-                # 判断并补全后缀
-                self.__filePath = self.__filePath + '.toml'
+            self.__filePath = path.join ('settings',self.appName,fileName)
+            self.__autoSave = save_when_change
+
+            if fileName [-5:] != '.toml' : self.__filePath = self.__filePath + '.toml'
+            # 判断并补全后缀
+
 
             if not path.isfile (self.__filePath):
                 # 如果文件不存在,创建之
@@ -190,8 +197,8 @@ class APPSDK ():
             if self.__is_loading:
                 # 如果正在初始化或载入配置,不执行保存操作,防止死循环
                 return
-            
-            if self.__saveWhenCh:
+
+            if self.__autoSave:
                 # 更改时保存
                 self.save ()
 
@@ -200,13 +207,13 @@ class APPSDK ():
                 toml.dump (self.data,self.fp)
 
         def __missing__(self, key):
-            
+
             if isinstance(key, str):
                 raise KeyError(key)
             return self[str(key)]
 
         def __contains__(self, key):
-            
+
             return str(key) in self.data
 
         def __getattr__(self, key):
@@ -215,14 +222,19 @@ class APPSDK ():
     class create_loger ():
         '''
                 创建一个Log生产者,并返回一个对象
-                    name : 每一个程序单独使用一个name,并将日志保存于 "log/name" 文件夹下
                     toConsole : 是否输出到控制台
                     toFile : 是否输出到文件
-                    fileLeave : 控制文件日志输出等级,详见 以 leave.开头的常量
-                    consolLeave : 控制台输出等级 同上
+                    leave : 控制日志输出等级,详见 以 leave.开头的常量
                     strFormat : 日志记录的格式
         '''
-        def __init__ (self,toConsole=False,toFile=True,fileLeave=LOG_leave.INFO,consolLeave=LOG_leave.WARN,strFormat="%(asctime)s %(levelname)s %(name)s-Line:%(lineno)d"):
+        appName:str = ''
+        def __init__ (self,
+            filePrefix:str = 'main',
+            toConsole:bool = False,
+            toFile:bool = True,
+            leave:int = LOG_leave.INFO,
+            strFormat:Optional[str] = "%(asctime)s %(levelname)s %(name)s-Line:%(lineno)d -> %(message)s"
+        ) -> logging.Logger:
             '''
                 创建一个Log生产者,并返回一个对象
                     name : 每一个程序单独使用一个name,并将日志保存于 "log/name" 文件夹下
@@ -232,41 +244,34 @@ class APPSDK ():
                     consolLeave : 控制台输出等级 同上
                     strFormat : 日志记录的格式
             '''
-            self.__loger = logging.getLogger (self.appName)
-            self.__fmter = logging.Formatter(strFormat)
-            self.__loger.setLevel(fileLeave)
+            self.loger = logging.getLogger (self.appName + ' - ' + filePrefix)
+            fmter = logging.Formatter(strFormat)
+            self.loger.setLevel(leave)
             if toFile:
-                self.__handler = logging.FileHandler (f'log{sep}{self.appName}{sep}{timeApi.getYMD ()}.log')
-                self.__handler.setLevel (fileLeave)
-                self.__handler.setFormatter(self.__fmter)
-                self.__loger.addHandler (self.__handler)
+                logPath = path.join ('log',self.appName, filePrefix + ' - ' + timeApi.getYMD () + '.log')
+                handler = logging.handlers.TimedRotatingFileHandler (
+                    filename=logPath,
+                    when='D', interval=1, backupCount=7
+                )
+                handler.setFormatter(fmter)
+                self.loger.addHandler (handler)
             if toConsole:
-                self.__schandler = logging.StreamHandler ()
-                self.__schandler.setLevel (consolLeave)
-                self.__schandler.setFormatter (self.__fmter)
-                self.__loger.addHandler (self.__schandler)
-            
-            self.error = self.__loger.error
-            self.info = self.__loger.info
-            self.debug = self.__loger.debug
-            self.warn = self.__loger.warn
-            self.critical = self.__loger.critical
+                schandler = logging.StreamHandler ()
+                schandler.setFormatter (fmter)
+                self.loger.addHandler (schandler)
 
-    def add_item_to_web_page (self,icon,link="",content=""):
-        '''
-            在 Web 主页上注册一个入口
-            icon & content : 两个参数只能二选一,如果选择 icon,请传入一个以app为根目录定义的图片,如果是conten,请传入html代码
-            link : 用户点击之后会打开此链接的窗口.
+            self.error = self.loger.error
+            self.info = self.loger.info
+            self.debug = self.loger.debug
+            self.warn = self.loger.warn
+            self.critical = self.loger.critical
 
-            !!! 注意 每个 item 在页面上显示的大小是会有限制的 !!!
+    def get_cfg_dir (self) -> str:
+        """
+            Return the path where the setting files was in.
+            返回设置文件的目录
 
-        '''
-        pass
+            return as : setting/myApp
+        """
+        return path.join ('settings',self.appName)
 
-    def add_cfg_to_web_page (self,key,func,defaultValue=None):
-        '''
-            添加一个配置项到主页上,用户修改后将触发回调 func (key,value)
-        '''
-        pass
-
-    

@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>Pi-For-All</title>
+
+
+        <!-- <link href="https://cdn.bootcss.com/mdui/0.4.3/css/mdui.min.css" rel="stylesheet">
+        <script src="https://cdn.bootcss.com/mdui/0.4.3/js/mdui.min.js"></script> -->
+
+        <link rel="stylesheet" type="text/css" href="{{ url_for ('WebPi.static' , filename = 'css/mdui.min.css') }}" />
+        <script src="{{ url_for ('WebPi.static' , filename = 'js/mdui.min.js') }}" type="text/javascript" charset="utf-8"></script>
+        <!-- MDUI -->
+
+        <script src="https://cdn.bootcss.com/jquery/2.1.4/jquery.min.js"></script>
+        <!-- jQuery -->
+
+        <script src="{{ url_for ('WebPi.static',filename='js/main.js') }}"></script>
+
+        <link rel="stylesheet" type="text/css" href="{{ url_for ('WebPi.static' , filename = 'css/main.css') }}" />
+        <!-- <script src="{{ url_for ('WebPi.static' , filename = 'js/main.js') }}" type="text/javascript" charset="utf-8"></script> -->
+
+        <script>
+            $(document).ready ((function () {
+                $('#container').show (800)
+            }));
+        </script>
+    </head>
+    <body class="mdui-theme-primary-blue-grey mdui-theme-accent-blue mdui-drawer-body-left mdui-appbar-with-toolbar">
+        <header class="mdui-appbar mdui-appbar-fixed">
+            <!-- 顶部工具栏 -->
+            <div class="mdui-toolbar mdui-color-theme ">
+                <a href="javascript:;" class="mdui-ripple mdui-btn mdui-btn-icon"><i class="mdui-icon material-icons" mdui-drawer="{target: '#left-drawer'}">menu</i></a>
+                <a href="javascript:;" class="mdui-typo-headline">Pi-For-All</a>
+                <!-- <a href="javascript:;" class="mdui-typo-title">Title</a> -->
+                <div class="mdui-toolbar-spacer"></div>
+                <a id="toolbar-wifi" mdui-dialog="{target: '#toolbar-wifi-dialog'}" href="javascript:;" class="mdui-ripple mdui-btn mdui-btn-icon"><i class="mdui-icon material-icons">network_wifi</i></a>
+
+
+                <a id="toolbar-bt" mdui-dialog="{target: '#toolbar-bt-dialog'}" href="javascript:;" class="mdui-ripple mdui-btn mdui-btn-icon"><i class="mdui-icon material-icons">bluetooth</i></a>
+                <a id="toolbar-vol" mdui-dialog="{target: '#toolbar-vol-dialog'}" href="javascript:;" class="mdui-ripple mdui-btn mdui-btn-icon"><i
+                        class="mdui-icon material-icons">volume_up</i></a>
+
+
+                <a id="toolbar-reboot" mdui-dialog="{target: '#toolbar-pwr-dialog'}" href="javascript:;" class="mdui-ripple mdui-btn mdui-btn-icon"><i class="mdui-icon material-icons">power_settings_new</i></a>
+            </div>
+
+
+        </header> <!-- 顶部工具栏 -->
+
+        <div id="toolbar-vol-dialog" class="mdui-dialog"><!-- VOL DIALOG -->
+            <div class="mdui-dialog-title">Set Volume</div>
+            <div class="mdui-dialog-content mdui-p-t-2">
+                <label class="mdui-slider mdui-slider-discrete " style="width: 90%;margin: 16px auto;">
+                  <input type="range" step="1" min="0" max="100"/>
+                </label>
+            </div>
+            <div class="mdui-dialog-actions">
+                <div class="mdui-divider mdui-m-y-2"></div>
+                <button class="mdui-btn mdui-ripple" mdui-dialog-close>OK</button>
+            </div>
+        </div><!-- VOL DIALOG -->
+
+        <div id="toolbar-wifi-dialog" class="mdui-dialog" style="max-width: 400px;"><!-- WIFI DIALOG -->
+            <div class="mdui-dialog-title" style="line-height: 36px;">
+                <span>wifi</span>
+                <label class="mdui-switch mdui-float-right mdui-clearfix">
+                    <input id="switch-wifi" type="checkbox"/>
+                    <i class="mdui-switch-icon"></i>
+                </label>
+            </div>
+            <div class="mdui-dialog-content" style="overflow-y: auto;">
+                {% if iface %}
+
+                    <select class="mdui-select" mdui-select>
+                        {% for i in iface %}
+                            <option value="{{i.name ()}}" onchange="ifaceOnChange (this);">
+                                {{ i }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                    <ul id="toolbar-wifi-connected" class="mdui-list" >
+
+                    </ul>
+                    <div class="mdui-divider mdui-m-y-1"></div>
+                    <ul id="toolbar-wifi-connected" class="mdui-list" >
+
+
+                    </ul>
+
+                    <li id='toolbar-wifi-list-template' class="mdui-list-item mdui-ripple">
+                        <i class="mdui-icon mdui-list-item-icon material-icons">wifi_lock</i>
+                        <div class="wifi-name mdui-list-item-content"></div>
+                        <i class="mdui-icon mdui-list-item-icon material-icons">keyboard_arrow_right</i>
+
+                    </li>
+
+                {% else %}
+                    <script>document.querySelector ('#switch-wifi').disabled='disabled';</script>
+                    <div>You have no wireless card , or wifi module has some error.</div>
+                {% endif %}
+            </div>
+
+            <div class="mdui-dialog-actions">
+                <div class="mdui-divider mdui-m-y-2"></div>
+                <button class="mdui-btn mdui-ripple" mdui-dialog-close>OK</button>
+            </div>
+        </div><!-- WIFI DIALOG -->
+
+        <div id="toolbar-bt-dialog" class="mdui-dialog" style="max-width: 400px;"><!-- BT DIALOG -->
+            <div class="mdui-dialog-title" style="line-height: 36px;">Bluetooth
+                <label class="mdui-switch mdui-float-right mdui-clearfix">
+                    <input id="" type="checkbox"/>
+                    <i class="mdui-switch-icon"></i>
+                </label>
+            </div>
+
+            <div class="mdui-dialog-content">
+                <ul id="toolbar-bt-connected" class="mdui-list" >
+                    <li class="mdui-subheader">Saved</li>
+                </ul>
+                <div class="mdui-divider mdui-m-y-1"></div>
+                <ul id="toolbar-bt-connected" class="mdui-list" >
+                    <li class="mdui-subheader">Unsaved</li>
+
+                </ul>
+
+                <li id='toolbar-bt-list-template' class="mdui-list-item mdui-ripple"><!-- template -->
+                    <i class="mdui-icon mdui-list-item-icon material-icons">bluetooth</i>
+                    <div class="bt-name mdui-list-item-content"></div>
+                    <i class="mdui-icon mdui-list-item-icon material-icons">keyboard_arrow_right</i>
+                </li><!-- template -->
+
+            </div>
+
+            <div class="mdui-dialog-actions">
+                <div class="mdui-divider mdui-m-y-2"></div>
+                <button class="mdui-btn mdui-ripple" mdui-dialog-close>OK</button>
+            </div>
+        </div><!-- BT DIALOG -->
+
+        <div id="toolbar-pwr-dialog" class="mdui-dialog" style="max-width: 300px;"><!-- power DIALOG -->
+            <div class="mdui-dialog-title">Power</div>
+            <div class="mdui-dialog-content mdui-valign mdui-row-xs-2">
+                <div class="mdui-col mdui-valign">
+                    <i class="toolbar-pwr-dialog-icons mdui-icon mdui-text-color-theme-accent material-icons mdui-ripple" mdui-tooltip="{content: 'Shutdown'}" >power_settings_new</i>
+                </div>
+                <div class="mdui-col mdui-valign">
+                    <i class="toolbar-pwr-dialog-icons mdui-icon mdui-text-color-theme-accent material-icons mdui-ripple" mdui-tooltip="{content: 'Reboot'}"  >refresh</i>
+                </div>
+            </div>
+            <div class="mdui-dialog-actions">
+                <div class="mdui-divider mdui-m-b-2"></div>
+                <button class="mdui-btn mdui-ripple" mdui-dialog-close >cancel</button>
+            </div>
+        </div><!-- power DIALOG -->
+
+        <div id="left-drawer" class="mdui-drawer mdui-shadow-16 mdui-bottom-nav-fixed" >
+            <!-- 左侧导航栏 -->
+            <ul id="left-drawer-content" class="mdui-list ">
+                <li class="mdui-list-item mdui-ripple mdui-m-y-1">
+                    <!-- home -->
+                    <i class="mdui-list-item-icon mdui-icon material-icons mdui-text-color-theme-icon">home</i>
+                    <a href="{{ url_for ('WebPi.home') }}" class="mdui-list-item-content mdui-text-color-theme-text "><div>Home</div></a>
+
+                </li> <!-- home -->
+
+                <li class="mdui-list-item mdui-ripple mdui-m-y-1">
+                    <!-- Drive State -->
+                    <i class="mdui-list-item-icon mdui-icon material-icons mdui-text-color-theme-icon">build</i>
+                    <a href="{{ url_for ('WebPi.drive_state') }}" class="mdui-list-item-content mdui-text-color-theme-text "><div>Drive State</div></a>
+
+                </li> <!-- Drive State -->
+
+                <li class="mdui-list-item  mdui-m-y-1 mdui-ripple">
+                    <!-- Applications -->
+                    <i class="mdui-list-item-icon mdui-icon material-icons mdui-text-color-theme-icon">apps</i>
+                    <a href="{{ url_for ( 'WebPi.applications' ) }}" class="mdui-list-item-content mdui-text-color-theme-text "><div>Applications</div></a>
+                </li> <!-- Applications -->
+
+                <li class="mdui-list-item mdui-ripple mdui-ripple mdui-m-y-1">
+                    <!-- settings -->
+                    <i class="mdui-list-item-icon mdui-icon material-icons mdui-text-color-theme-icon">settings</i>
+                    <a href="{{ url_for ('WebPi.settings') }}" class="mdui-list-item-content mdui-text-color-theme-text "><div >Settings</div></a>
+                </li> <!-- settings -->
+
+                <li class="mdui-list-item  mdui-m-y-1 mdui-ripple">
+                    <!-- About -->
+                    <i class="mdui-list-item-icon mdui-icon material-icons mdui-text-color-theme-icon">info</i>
+                    <a href="{{ url_for ('WebPi.about') }}" class="mdui-list-item-content mdui-text-color-theme-text "><div >About</div></a>
+                </li> <!-- About -->
+            </ul>
+
+            <div id="left-drawer-nav" class="mdui-bottom-nav mdui-color-theme" style="display: none;"> <!-- 手机导航栏的图标 -->
+
+                <a href="javascript:void(0);" mdui-dialog="{target: '#toolbar-wifi-dialog'}" class="mdui-ripple">
+                    <i class="mdui-icon material-icons">network_wifi</i>
+                </a>
+                <a href="javascript:void(0);" mdui-dialog="{target: '#toolbar-bt-dialog'}" class="mdui-ripple">
+                    <i class="mdui-icon material-icons">bluetooth</i>
+                </a>
+                <a href="javascript:void(0);" mdui-dialog="{target: '#toolbar-vol-dialog'}" class="mdui-ripple">
+                    <i class="mdui-icon material-icons">volume_up</i>
+                </a>
+            </div><!-- 手机导航栏的图标 -->
+        </div> <!-- 左侧导航栏 -->
+
+        <div id="container" class="mdui-container mdui-p-y-2" style="display: none;" >
+            {{ content | safe }}
+        </div>
+    </body>
+</html>
