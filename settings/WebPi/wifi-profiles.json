@@ -1,1 +1,1 @@
-{}
+{"wlan0": [{"id": 0, "auth": 0, "akm": [4], "cipher": 0, "ssid": "YMJK_5G", "bssid": "a4:9b:4f:93:08:48", "key": null, "freq": 5745, "signal": -37}, {"id": 0, "auth": 0, "akm": [4], "cipher": 0, "ssid": "YMJK_5G", "bssid": "a4:9b:4f:93:08:48", "key": "YM87C37H87E13N", "freq": 5745, "signal": -39}]}

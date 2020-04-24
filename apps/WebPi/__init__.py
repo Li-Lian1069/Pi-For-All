@@ -63,7 +63,7 @@ def settings ():
 def about ():
     return template (content = render_template ('about.html'))
 
-@app.route ('/api/wifi',methods=["POST"])
+@app.route ('/api/wifi',methods=["GET","POST"])
 def api_wifi ():
     """
     WIFI接口:
@@ -162,8 +162,23 @@ def api_wifi ():
             iface.scan ()
             time.sleep (10) # 等待10秒
             result ['scan_results'] = []
+
+            PROFILES = False
+            try:# 尝试读取配置,读不到就算了
+                PROFILES = wifi.get_profiles (ifaceName)
+                d = {}
+                for i in PROFILES:
+                    d[i.ssid] =  i.key
+                # 将配置中的键值对取出
+            except:
+                pass
+
             for profile in iface.scan_results ():
+                if PROFILES and (profile.ssid in d):
+                    # 如果配置中已经出现了,添加key
+                    profile.key = d[profile.ssid]
                 result ['scan_results'].append (profile.__dict__)
+
             return json.dumps (result)
 
         if command == 'connect':
@@ -191,6 +206,7 @@ def api_wifi ():
         iface = wifi.get_iface (ifaceName)
         result['statu'] = iface.status ()
         raise Exception ('Unknow command.')
+
     except Exception as e:
         result['statu'] = wifi.ERROR
         result['errormsg'] = str (e)
@@ -329,10 +345,18 @@ def api_volume ():
         return json.dumps (result)
     if request.method == "POST":
         # 设置后返回
+        print ('post')
         result ['statu'] = STATU.OK
         volume.setV (request.form.get ('value',str))
         result ['value'] = volume.getV ()
         return json.dumps (result)
+
+@app.route ('/api/shutdown/<string:method>/')
+def api_shutdown (method):
+    if method == 'reboot':
+        os.system ('sudo shutdown -r now')
+    elif method == 'shutdown':
+        os.system ('sudo shutdown -h now')
 
 def get_net_speed ():
     '''

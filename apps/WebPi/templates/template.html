@@ -35,15 +35,18 @@
                 <a href="javascript:;" class="mdui-typo-headline">Pi-For-All</a>
                 <!-- <a href="javascript:;" class="mdui-typo-title">Title</a> -->
                 <div class="mdui-toolbar-spacer"></div>
-                <a id="toolbar-wifi" mdui-dialog="{target: '#toolbar-wifi-dialog'}" href="javascript:;" class="mdui-ripple mdui-btn mdui-btn-icon"><i class="mdui-icon material-icons">network_wifi</i></a>
+                <a id="toolbar-wifi" href="javascript:dialogWifi.open();" class="mdui-ripple mdui-btn mdui-btn-icon"><i class="mdui-icon material-icons">network_wifi</i></a>
 
 
-                <a id="toolbar-bt" mdui-dialog="{target: '#toolbar-bt-dialog'}" href="javascript:;" class="mdui-ripple mdui-btn mdui-btn-icon"><i class="mdui-icon material-icons">bluetooth</i></a>
+                <!-- <a id="toolbar-bt" mdui-dialog="{target: '#toolbar-bt-dialog'}" href="javascript:;" class="mdui-ripple mdui-btn mdui-btn-icon"><i class="mdui-icon material-icons">bluetooth</i></a> -->
+
+
                 <a id="toolbar-vol" mdui-dialog="{target: '#toolbar-vol-dialog'}" href="javascript:;" class="mdui-ripple mdui-btn mdui-btn-icon"><i
                         class="mdui-icon material-icons">volume_up</i></a>
 
 
-                <a id="toolbar-reboot" mdui-dialog="{target: '#toolbar-pwr-dialog'}" href="javascript:;" class="mdui-ripple mdui-btn mdui-btn-icon"><i class="mdui-icon material-icons">power_settings_new</i></a>
+                <a id="toolbar-reboot" mdui-dialog="{target: '#toolbar-pwr-dialog'}" href="javascript:void(0);" class="mdui-ripple mdui-btn mdui-btn-icon"><i class="mdui-icon material-icons">power_settings_new</i></a>
+
             </div>
 
 
@@ -57,17 +60,14 @@
                         function () {
                             $.get (
                                 '/WebPi/api/volume',
-                                function (data,statu) {
-                                    if (statu == 'success') {
-                                        $('#volume-input').attr (value,data.value)
-                                    }
-                                }
-                            )
-                        }
-                    )
+                                function (data) {
+                                    data = JSON.parse (data);
+                                    $('#volume-input').attr ('value', parseInt (data.value));
+                                    mdui.updateSliders();
+                                })})
                 </script>
                 <label class="mdui-slider mdui-slider-discrete " style="width: 90%;margin: 16px auto;">
-                  <input id="volume-input" type="range" step="1" min="0" max="100" onchange=""/>
+                  <input id="volume-input" type="range" step="1" min="0" max="100" onchange="volumeOnChange(this.value)"/>
                 </label>
             </div>
             <div class="mdui-dialog-actions">
@@ -87,25 +87,26 @@
             <div class="mdui-dialog-content" style="overflow-y: auto;">
                 {% if iface %}
 
-                    <select class="mdui-select" mdui-select>
+                    <select id="iface-select" class="mdui-select" mdui-select>
                         {% for i in iface %}
                             <option value="{{i}}" onchange="ifaceOnChange (this);">
                                 {{ i }}
                             </option>
                         {% endfor %}
                     </select>
-                    <ul id="toolbar-wifi-connected" class="mdui-list" >
+                    <ul id="toolbar-wifi-connected-list" class="mdui-list" >
 
                     </ul>
                     <div class="mdui-divider mdui-m-y-1"></div>
-                    <ul id="toolbar-wifi-connected" class="mdui-list" >
+                    <ul id="toolbar-wifi-list" class="mdui-list" >
 
 
                     </ul>
 
-                    <li id='toolbar-wifi-list-template' class="mdui-list-item mdui-ripple">
+
+                    <li id='toolbar-wifi-list-template' class="mdui-list-item mdui-ripple mdui-text-truncate mdui-hidden">
                         <i class="mdui-icon mdui-list-item-icon material-icons">wifi_lock</i>
-                        <div class="wifi-name mdui-list-item-content"></div>
+                        <div class="wifi-name wifi-data mdui-list-item-content" onclick="wifi_connect (this);"></div>
                         <i class="mdui-icon mdui-list-item-icon material-icons">keyboard_arrow_right</i>
 
                     </li>
@@ -122,46 +123,14 @@
             </div>
         </div><!-- WIFI DIALOG -->
 
-        <div id="toolbar-bt-dialog" class="mdui-dialog" style="max-width: 400px;"><!-- BT DIALOG -->
-            <div class="mdui-dialog-title" style="line-height: 36px;">Bluetooth
-                <label class="mdui-switch mdui-float-right mdui-clearfix">
-                    <input id="" type="checkbox"/>
-                    <i class="mdui-switch-icon"></i>
-                </label>
-            </div>
-
-            <div class="mdui-dialog-content">
-                <ul id="toolbar-bt-connected" class="mdui-list" >
-                    <li class="mdui-subheader">Saved</li>
-                </ul>
-                <div class="mdui-divider mdui-m-y-1"></div>
-                <ul id="toolbar-bt-connected" class="mdui-list" >
-                    <li class="mdui-subheader">Unsaved</li>
-
-                </ul>
-
-                <li id='toolbar-bt-list-template' class="mdui-list-item mdui-ripple"><!-- template -->
-                    <i class="mdui-icon mdui-list-item-icon material-icons">bluetooth</i>
-                    <div class="bt-name mdui-list-item-content"></div>
-                    <i class="mdui-icon mdui-list-item-icon material-icons">keyboard_arrow_right</i>
-                </li><!-- template -->
-
-            </div>
-
-            <div class="mdui-dialog-actions">
-                <div class="mdui-divider mdui-m-y-2"></div>
-                <button class="mdui-btn mdui-ripple" mdui-dialog-close>OK</button>
-            </div>
-        </div><!-- BT DIALOG -->
-
         <div id="toolbar-pwr-dialog" class="mdui-dialog" style="max-width: 300px;"><!-- power DIALOG -->
             <div class="mdui-dialog-title">Power</div>
             <div class="mdui-dialog-content mdui-valign mdui-row-xs-2">
                 <div class="mdui-col mdui-valign">
-                    <i class="toolbar-pwr-dialog-icons mdui-icon mdui-text-color-theme-accent material-icons mdui-ripple" mdui-tooltip="{content: 'Shutdown'}" >power_settings_new</i>
+                    <a href="/WebPi/api/shutdown/shutdown/"><i class="toolbar-pwr-dialog-icons mdui-icon mdui-text-color-theme-accent material-icons mdui-ripple" mdui-tooltip="{content: 'Shutdown'}" >power_settings_new</i></a>
                 </div>
                 <div class="mdui-col mdui-valign">
-                    <i class="toolbar-pwr-dialog-icons mdui-icon mdui-text-color-theme-accent material-icons mdui-ripple" mdui-tooltip="{content: 'Reboot'}"  >refresh</i>
+                    <a href="/WebPi/api/shutdown/reboot/"><i class="toolbar-pwr-dialog-icons mdui-icon mdui-text-color-theme-accent material-icons mdui-ripple" mdui-tooltip="{content: 'Reboot'}"  >refresh</i></a>
                 </div>
             </div>
             <div class="mdui-dialog-actions">
@@ -211,9 +180,9 @@
                 <a href="javascript:void(0);" mdui-dialog="{target: '#toolbar-wifi-dialog'}" class="mdui-ripple">
                     <i class="mdui-icon material-icons">network_wifi</i>
                 </a>
-                <a href="javascript:void(0);" mdui-dialog="{target: '#toolbar-bt-dialog'}" class="mdui-ripple">
+                <!-- <a href="javascript:void(0);" mdui-dialog="{target: '#toolbar-bt-dialog'}" class="mdui-ripple">
                     <i class="mdui-icon material-icons">bluetooth</i>
-                </a>
+                </a> -->
                 <a href="javascript:void(0);" mdui-dialog="{target: '#toolbar-vol-dialog'}" class="mdui-ripple">
                     <i class="mdui-icon material-icons">volume_up</i>
                 </a>
